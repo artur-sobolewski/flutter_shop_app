@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart.dart';
 import '../providers/product.dart';
 import '../screens/product_detail_screen.dart';
+import '../providers/auth.dart';
 
 class ProductItem extends StatelessWidget {
   // final String id;
@@ -15,6 +16,8 @@ class ProductItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final loadedProduct = Provider.of<Product>(context, listen: false);
     final cart = Provider.of<Cart>(context, listen: false);
+    final authData = Provider.of<Auth>(context, listen: false);
+    final scaffold = Scaffold.of(context);
     return Container(
       decoration: BoxDecoration(
         boxShadow: [
@@ -36,9 +39,14 @@ class ProductItem extends StatelessWidget {
                 arguments: loadedProduct.id,
               );
             },
-            child: Image.network(
-              loadedProduct.imageUrl,
-              fit: BoxFit.cover,
+            child: Hero(
+              tag: loadedProduct.id,
+              child: FadeInImage(
+                placeholder:
+                    AssetImage('assets/images/product-placeholder.png'),
+                image: NetworkImage(loadedProduct.imageUrl),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           footer: GridTileBar(
@@ -54,8 +62,22 @@ class ProductItem extends StatelessWidget {
                 ),
                 // label: child,       <- example for using never changing child
                 color: Theme.of(context).accentColor,
-                onPressed: () {
-                  loadedProduct.toggleFavoriteProduct();
+                onPressed: () async {
+                  try {
+                    await loadedProduct.toggleFavoriteProduct(
+                      authData.token,
+                      authData.userId,
+                    );
+                  } catch (error) {
+                    scaffold.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Adding to favorite failed.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               // child: Text("Label"),  <- Never change
@@ -76,7 +98,7 @@ class ProductItem extends StatelessWidget {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Expanded(
+                    content: Container(
                       child: Text(
                         'Added item to cart!',
                         textAlign: TextAlign.center,
